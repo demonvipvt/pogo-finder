@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Title of the document</title>
+</head>
+
+<body>
+	<label>Time : <div id="finding" style="display:inline-block;"></div></label>
+	<ul id="poke-list">
+	</ul>
+	<script type="text/javascript" src="jquery-3.1.0.min.js"></script>
+	<script type="text/javascript">
+		$finding = $("#finding");
+		$pokelisting = $("#poke-list");
+		finding = false;
+		pokeid = 149 ;
+		findTime = 0;
+		hasPoke=true;
+		$(document).ready(function(){
+			getPokemon(pokeid);
+			var timming = setInterval(function(){
+				getPokemon(pokeid);
+			},1000);
+		})
+		function getPokemon(pokeid){
+			findTime++;
+			findM = Math.round(findTime/60);
+			findS = findTime%60;
+			if(findM>0){
+				findTimeText = findM+':'+findS;
+			}else{
+				findTimeText = findS;
+			}
+			$finding.text(findTimeText);
+			if(finding){
+			}else{
+				finding = true;
+				$.ajax({
+					url: "https://www.pokeradar.io/api/v1/submissions"
+					, method: "GET"
+					, data: {
+						  'deviceId':		'73e2e460648b11e6958e73fe42a85330'
+						, 'maxLatitude':	'40.88029480552824'
+						, 'maxLongitude':	'-102.19482421875'
+						, 'minLatitude':	'29.859701442126756'
+						, 'minLongitude':	'-124.73876953125'
+						, 'pokemonId':		pokeid
+					}
+					, success: function(result){
+						$pokelisting.empty();
+						hasPoke=false;
+						for (var i = result.data.length - 1; i >= 0; i--) {
+							var poke = result.data[i];
+							if(poke.userId === "13661365" ){
+								hasPoke=true;
+								var created = new Date(poke.created*1000);
+								var timenow = new Date().getTime();
+								var timeLeft = 900 - Math.round((timenow-created)/1000);
+								var newItem = '<li>';
+								newItem += '<img src="Resources/'+poke.pokemonId+'.png" width="30" height="30" />';
+								newItem += '<label>'+getPokeName(poke.pokemonId)+'('+Math.round(timeLeft/60)+':'+Math.round(timeLeft%60)+')'+'</label>';
+								$pokelisting.append(newItem);
+							}
+						}
+						if(hasPoke){
+							notifyMe(pokeid);
+						}
+					}
+				}).done(function(){
+					finding = false;
+				});
+			}
+		};
+		function measure(lat1, lon1, lat2, lon2){  // generally used geo measurement function
+			var R = 6378.137; // Radius of earth in KM
+			var dLat = (lat2 - lat1) * Math.PI / 180;
+			var dLon = (lon2 - lon1) * Math.PI / 180;
+			var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+			Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+			Math.sin(dLon/2) * Math.sin(dLon/2);
+			var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+			var d = R * c;
+			return d * 1000; // meters
+		}
+		function getPokeList(){
+			result = [
+				'All','Bulbasaur','Ivysaur','Venusaur','Charmander','Charmeleon','Charizard','Squirtle','Wartortle','Blastoise','Caterpie','Metapod','Butterfree','Weedle','Kakuna','Beedrill','Pidgey','Pidgeotto','Pidgeot','Rattata','Raticate','Spearow','Fearow','Ekans','Arbok','Pikachu','Raichu','Sandshrew','Sandslash','Nidoran♀','Nidorina','Nidoqueen','Nidoran♂','Nidorino','Nidoking','Clefairy','Clefable','Vulpix','Ninetales','Jigglypuff','Wigglytuff','Zubat','Golbat','Oddish','Gloom','Vileplume','Paras','Parasect','Venonat','Venomoth','Diglett','Dugtrio','Meowth','Persian','Psyduck','Golduck','Mankey','Primeape','Growlithe','Arcanine','Poliwag','Poliwhirl','Poliwrath','Abra','Kadabra','Alakazam','Machop','Machoke','Machamp','Bellsprout','Weepinbell','Victreebel','Tentacool','Tentacruel','Geodude','Graveler','Golem','Ponyta','Rapidash','Slowpoke','Slowbro','Magnemite','Magneton','Farfetch\'d','Doduo','Dodrio','Seel','Dewgong','Grimer','Muk','Shellder','Cloyster','Gastly','Haunter','Gengar','Onix','Drowzee','Hypno','Krabby','Kingler','Voltorb','Electrode','Exeggcute','Exeggutor','Cubone','Marowak','Hitmonlee','Hitmonchan','Lickitung','Koffing','Weezing','Rhyhorn','Rhydon','Chansey','Tangela','Kangaskhan','Horsea','Seadra','Goldeen','Seaking','Staryu','Starmie','Mr.Mime','Scyther','Jynx','Electabuzz','Magmar','Pinsir','Tauros','Magikarp','Gyarados','Lapras','Ditto','Eevee','Vaporeon','Jolteon','Flareon','Porygon','Omanyte','Omastar','Kabuto','Kabutops','Aerodactyl','Snorlax','Articuno','Zapdos','Moltres','Dratini','Dragonair','Dragonite'
+			];
+			return result;
+		}
+		function getPokeName(pokeid){
+			pokelist = getPokeList();
+			return pokelist[pokeid];
+		}
+		document.addEventListener('DOMContentLoaded', function () {
+		  if (!Notification) {
+		    alert('Desktop notifications not available in your browser. Try Chromium.'); 
+		    return;
+		  }
+
+		  if (Notification.permission !== "granted")
+		    Notification.requestPermission();
+		});
+		function notifyMe(pokeid) {
+		  if (Notification.permission !== "granted")
+		    Notification.requestPermission();
+		  else {
+		    var notification = new Notification('Has '+getPokeName(pokeid), {
+		      icon: 'http://cdn.sstatic.net/stackexchange/img/logos/so/so-icon.png',
+		      body: "Hey there! You've been notified!",
+		    });
+
+		  }
+
+		}
+	</script>
+</body>
+
+</html>
